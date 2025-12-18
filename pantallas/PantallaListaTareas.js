@@ -1,28 +1,87 @@
-import { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
+
+import { ContextoTareas } from '../contextos/ContextoTareas';
+
+import { ComponenteBotonFlotante } from '../componentes/ComponenteBotonFlotante';
+import { ComponenteBuscador } from '../componentes/ComponenteBuscador';
+import { ComponenteFiltro } from '../componentes/ComponenteFiltro';
 import { ComponenteTarea } from '../componentes/ComponenteTarea';
-import { ContextoAutenticacion } from '../contextos/ContextoAutenticacion';
-import { escucharTareas } from '../servicios/ServicioTareas';
+
+import { PantallaCrearEditarTarea } from './PantallaCrearEditarTarea';
 
 export function PantallaListaTareas() {
-  const { usuario, cargando } = useContext(ContextoAutenticacion);
-  const [tareas, setTareas] = useState([]);
+  const {
+    tareas,
+    crearTarea,
+    marcarCompletada,
+    archivar,
+    setBusqueda,
+    setFiltroCategoria,
+    setFiltroPrioridad,
+    filtros,
+  } = useContext(ContextoTareas);
 
-  useEffect(() => {
-    if (!usuario) return;
-    const unsub = escucharTareas(usuario.uid, setTareas);
-    return () => unsub();
-  }, [usuario]);
+  const [mostrarModal, setMostrarModal] = useState(false);
 
-  if (cargando) return <Text>Cargando...</Text>;
+  function guardarTarea(datos) {
+    crearTarea(datos);
+  }
 
   return (
-    <View style={{ padding: 16, flex: 1 }}>
-      <Text style={{ fontSize: 18, marginBottom: 8 }}>Mis tareas</Text>
+    <View style={{ flex: 1, padding: 16 }}>
+      {/* Buscador */}
+      <ComponenteBuscador
+        valor={filtros.busqueda}
+        alCambiar={setBusqueda}
+      />
+
+      {/* Filtros */}
+      <ComponenteFiltro
+        filtroCategoria={filtros.filtroCategoria}
+        filtroPrioridad={filtros.filtroPrioridad}
+        alCambiarCategoria={setFiltroCategoria}
+        alCambiarPrioridad={setFiltroPrioridad}
+        alLimpiar={() => {
+          setFiltroCategoria(null);
+          setFiltroPrioridad(null);
+        }}
+      />
+
+      {/* Lista */}
       <FlatList
         data={tareas}
-        keyExtractor={(i) => i.id}
-        renderItem={({ item }) => <ComponenteTarea tarea={item} />}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ComponenteTarea
+            tarea={item}
+            alMarcarCompletada={marcarCompletada}
+            alArchivar={archivar}
+          />
+        )}
+        ListEmptyComponent={
+          <Text
+            style={{
+              textAlign: 'center',
+              marginTop: 40,
+              color: '#757575',
+            }}
+          >
+            No hay tareas aún
+          </Text>
+        }
+      />
+
+      {/* Botón flotante */}
+      <ComponenteBotonFlotante
+        onPress={() => setMostrarModal(true)}
+      />
+
+      {/* Modal crear tarea */}
+      <PantallaCrearEditarTarea
+        visible={mostrarModal}
+        alCerrar={() => setMostrarModal(false)}
+        alGuardar={guardarTarea}
       />
     </View>
   );
